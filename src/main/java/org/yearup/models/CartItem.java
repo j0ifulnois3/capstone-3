@@ -20,6 +20,30 @@ public class CartItem
     @Column(name = "quantity")
     private int quantity = 1;
 
+    @Transient
+    private Product product;
+
+    // Getter and Setter for the transient product
+    public Product getProduct()
+    {
+        return product;
+    }
+
+    public void setProduct(Product product)
+    {
+        this.product = product;
+    }
+
+    public double getLineTotal()
+    {
+        if (this.product != null)
+        {
+            return this.product.getPrice() * this.quantity;
+        }
+        return 0.0;
+    }
+
+
     public int getCartItemId()
     {
         return cartItemId;

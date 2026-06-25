@@ -8,66 +8,84 @@ import org.yearup.models.Category;
 import org.yearup.models.Product;
 import org.yearup.service.CategoryService;
 import org.yearup.service.ProductService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
-// add the annotations to make this a REST controller
-// add the annotation to make this controller the endpoint for the following url
-    // http://localhost:8080/categories
-// add annotation to allow cross site origin requests
-public class CategoriesController
-{
+@RestController
+@RequestMapping("categories")
+@CrossOrigin
+public class CategoriesController {
     private CategoryService categoryService;
     private ProductService productService;
 
 
-    // create an Autowired constructor to inject the categoryService and productService
-
-    // add the appropriate annotation for a get action
-    public List<Category> getAll()
-    {
-        // find and return all categories
-        return null;
+    @Autowired // Directs Spring Boot to inject your business logic services automatically
+    public CategoriesController(CategoryService categoryService, ProductService productService) {
+        this.categoryService = categoryService;
+        this.productService = productService;
     }
 
-    // add the appropriate annotation for a get action
-    public Category getById(@PathVariable int id)
-    {
-        // get the category by id
-        return null;
+    // 1. Get all categories
+    @GetMapping
+    public List<Category> getAll() {
+        return categoryService.getAllCategories();
     }
 
-    // the url to return all products in category 1 would look like this
-    // https://localhost:8080/categories/1/products
+    // 2. Get category by ID
+    @GetMapping("{id}")
+    public Category getById(@PathVariable int id) {
+        Category category = categoryService.getById(id);
+        if (category == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "Category not found."
+            );
+        }
+        return category;
+    }
+
+    // 3. Get all products under a specific category
     @GetMapping("{categoryId}/products")
-    public List<Product> getProductsById(@PathVariable int categoryId)
-    {
-        // get a list of product by categoryId
-        return null;
+    public List<Product> getProductsById(@PathVariable int categoryId) {
+        return productService.listByCategoryId(categoryId);
     }
 
-    // add annotation to call this method for a POST action
-    // add annotation to ensure that only an ADMIN can call this function
-    public ResponseEntity<Category> addCategory(@RequestBody Category category)
-    {
-        // insert the category and return it with status 201 Created
-        return null;
+    // 4. Add Category (Admin Only)
+    @PostMapping
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Category> addCategory(@RequestBody Category category) {
+        try {
+            Category createdCategory = categoryService.create(category);
+            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(createdCategory);
+        } catch (Exception e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "Oops, something went wrong."
+            );
+        }
     }
 
-    // add annotation to call this method for a PUT (update) action - the url path must include the categoryId
-    // add annotation to ensure that only an ADMIN can call this function
-    public Category updateCategory(@PathVariable int id, @RequestBody Category category)
-    {
-        // update the category by id and return the updated category (200 OK)
-        return null;
+    // 5. Update Category (Admin Only)
+    @PutMapping("{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public Category updateCategory(@PathVariable int id, @RequestBody Category category) {
+        categoryService.update(id, category);
+        return category;
     }
 
-
-    // add annotation to call this method for a DELETE action - the url path must include the categoryId
-    // add annotation to ensure that only an ADMIN can call this function
-    public ResponseEntity<Void> deleteCategory(@PathVariable int id)
-    {
-        // delete the category by id and return status 204 No Content
-        return null;
+    // 6. Delete Category (Admin Only)
+    @DeleteMapping("{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Void> deleteCategory(@PathVariable int id) {
+        try {
+            categoryService.delete(id);
+            return org.springframework.http.ResponseEntity.noContent().build(); // Sends 204 No Content
+        } catch (Exception e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "Could not delete category."
+            );
+        }
     }
 }

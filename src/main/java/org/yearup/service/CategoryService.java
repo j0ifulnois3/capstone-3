@@ -16,32 +16,33 @@ public class CategoryService
         this.categoryRepository = categoryRepository;
     }
 
+    // 1. Updated method name signature to match what you had
     public List<Category> getAllCategories()
     {
-        // get all categories
-        return null;
+        // delegate work to the repository layer
+        return categoryRepository.findAll();
     }
 
     public Category getById(int categoryId)
     {
-        // get category by id
-        return null;
+        // find category or return null if not present
+        return categoryRepository.findById(categoryId).orElse(null);
     }
 
     public Category create(Category category)
     {
-        // create a new category
-        return null;
+        return categoryRepository.save(category);
     }
 
     public Category update(int categoryId, Category category)
     {
-        // update category and return the updated category
-        return null;
+        // Ensure the ID matches before saving changes
+        category.setCategoryId(categoryId);
+        return categoryRepository.save(category);
     }
 
     public void delete(int categoryId)
     {
-        // delete category
+        categoryRepository.deleteById(categoryId);
     }
 }
