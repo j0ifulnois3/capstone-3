@@ -1,17 +1,14 @@
 package org.yearup.controllers;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.yearup.models.Category;
 import org.yearup.models.Product;
 import org.yearup.service.CategoryService;
 import org.yearup.service.ProductService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
@@ -19,51 +16,50 @@ import java.util.List;
 @RequestMapping("categories")
 @CrossOrigin
 public class CategoriesController {
-    private CategoryService categoryService;
-    private ProductService productService;
 
+    // 🌟 These fields must be explicitly declared here so the methods below can use them!
+    private final CategoryService categoryService;
+    private final ProductService productService;
 
-    @Autowired // Directs Spring Boot to inject your business logic services automatically
     public CategoriesController(CategoryService categoryService, ProductService productService) {
         this.categoryService = categoryService;
         this.productService = productService;
     }
 
     // 1. Get all categories
-    @GetMapping
+    @GetMapping("")
+    @PreAuthorize("permitAll()")
     public List<Category> getAll() {
         return categoryService.getAllCategories();
     }
 
     // 2. Get category by ID
     @GetMapping("{id}")
+    @PreAuthorize("permitAll()")
     public Category getById(@PathVariable int id) {
         Category category = categoryService.getById(id);
         if (category == null) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.NOT_FOUND, "Category not found."
-            );
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found.");
         }
         return category;
     }
 
     // 3. Get all products under a specific category
     @GetMapping("{categoryId}/products")
+    @PreAuthorize("permitAll()")
     public List<Product> getProductsById(@PathVariable int categoryId) {
         return productService.listByCategoryId(categoryId);
     }
 
     // 4. Add Category (Admin Only)
-    @PostMapping
+    @PostMapping("")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Category> addCategory(@RequestBody Category category) {
         try {
             Category createdCategory = categoryService.create(category);
-            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(createdCategory);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdCategory);
         } catch (Exception e) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "Oops, something went wrong."
-            );
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops, something went wrong.");
         }
     }
 
@@ -71,6 +67,9 @@ public class CategoriesController {
     @PutMapping("{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public Category updateCategory(@PathVariable int id, @RequestBody Category category) {
+        if (categoryService.getById(id) == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found.");
+        }
         categoryService.update(id, category);
         return category;
     }
@@ -80,12 +79,15 @@ public class CategoriesController {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Void> deleteCategory(@PathVariable int id) {
         try {
+            if (categoryService.getById(id) == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found.");
+            }
             categoryService.delete(id);
-            return org.springframework.http.ResponseEntity.noContent().build(); // Sends 204 No Content
+            return ResponseEntity.noContent().build();
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "Could not delete category."
-            );
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not delete category.");
         }
     }
 }
