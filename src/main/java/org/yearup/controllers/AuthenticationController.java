@@ -43,14 +43,20 @@ public class AuthenticationController {
 
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginDto loginDto) {
+
         try
         {
+            // 1. Take the credentials from Insomnia and package them for Spring Security
             UsernamePasswordAuthenticationToken authenticationToken =
                     new UsernamePasswordAuthenticationToken(loginDto.getUsername(), loginDto.getPassword());
 
+            // 2. Let the authentication manager verify them against the database
             Authentication authentication = authenticationManager.authenticate(authenticationToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // 3. Generate the secure access token
             String jwt = tokenProvider.createToken(authentication, false);
+
 
             User user = userService.getByUserName(loginDto.getUsername());
 
